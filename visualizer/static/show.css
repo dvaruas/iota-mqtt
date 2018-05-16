@@ -1,0 +1,31 @@
+div {
+  padding-top: 200px;
+  overflow-x: auto;
+}
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 60%;
+}
+
+td, th {
+    border: 1px solid black;
+    text-align: left;
+    padding: 8px;
+}
+
+th {
+    background-color : rgba(82,210,154,1);
+}
+
+tr:hover {
+  background-color: #d0dcef;
+}
+
+tr:after {
+    content: ' ';
+    display: block;
+    visibility: hidden;
+    clear: both;
+}

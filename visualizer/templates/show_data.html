@@ -1,0 +1,28 @@
+<!doctype html>
+
+<html>
+  <head>
+    <link rel= "stylesheet" type="text/css" href="{{ url_for('static', filename = 'show.css') }}">
+  </head>
+  <body>
+    <div>
+      <table align="center">
+        <tr>
+          <th> Timestamp </th>
+          <th> Item Name </th>
+          <th> Item Value </th>
+          {% for i in range(verifier_count): %}
+            <th> VERIFIER {{ i + 1 }} </th>
+          {% endfor %}
+        </tr>
+        {% for _da in data: %}
+          <tr>
+          {% for _i in _da: %}
+            <td> {{_i}}</td>
+          {% endfor %}
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </body>
+</html>
