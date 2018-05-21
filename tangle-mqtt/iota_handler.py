@@ -7,8 +7,8 @@ import socket
 import sys
 
 
-CONFIG_FILE = os.path.relpath(os.path.join(os.pardir, 'resources/config.ini'))
-
+CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                              os.pardir, 'resources/config.ini'))
 
 def msg_id_generator():
     msg_id = 0
@@ -64,18 +64,97 @@ def on_data_received(client, userdata, message):
 
 def startup():
     config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-    iota_node_address = config.get('IOTA_NODE', 'node_address')
-    iota_port = config.getint('IOTA_NODE', 'port')
-    depth_value = config.getint('IOTA_NODE', 'depth_value')
-    dev_seed = config.get('DEVICE', 'send_seed')
-    recv_addr = config.get('DEVICE', 'recv_addr')
-    broker_address = config.get('BROKER', 'node_address')
-    broker_port = config.getint('BROKER', 'port')
-    topics = config.get('BROKER', 'topics')
-    verifier_server = config.get('VERIFIER_SERVER', 'server_address')
-    verifier_server_port = config.getint('VERIFIER_SERVER', 'server_port')
+    if not config.read(CONFIG_FILE):
+        print("No configuration file found! Exiting startUp!")
+        sys.exit(0)
 
+    if not config.has_section('IOTA_NODE'):
+        print("No configuration for IOTA Node provided, exiting ...")
+        sys.exit(0)
+    else:
+        if not config.has_option('IOTA_NODE', 'node_address'):
+            print("IOTA Node address not provided, exiting ...")
+            sys.exit(0)
+        else:
+            iota_node_address = config.get('IOTA_NODE', 'node_address')
+
+        iota_port = None
+        if config.has_option('IOTA_NODE', 'port'):
+            try:
+                iota_port = config.getint('IOTA_NODE', 'port')
+            except ValueError:
+                print("CONFIG PARSING ERROR : IOTA NODE port value is not a number ... ")
+                pass
+        if not iota_port:
+            print("IOTA node port is not provided, exiting ...")
+            sys.exit(0)
+
+        if not config.has_option('IOTA_NODE', 'depth_value'):
+            print("How much deep in Tangle to go to, to start random walk not specified ...")
+            print("Taking default value of 3") # TBD
+        try:
+            depth_value = config.getint('IOTA_NODE', 'depth_value', fallback=3)
+        except ValueError:
+            print("CONFIG PARSING ERROR : IOTA NODE depth value is not a number, defaulting to 3 ... ")
+            depth_value = 3
+
+    if not config.has_section('DEVICE'):
+        print('Device identity to Tangle not specified, exiting ...')
+        sys.exit(0)
+    else:
+        if not config.has_option('DEVICE', 'send_seed'):
+            print('The Sender Seed of the device connected to Tangle and adding data, not specified, exiting ...')
+            sys.exit(0)
+        else:
+            dev_seed = config.get('DEVICE', 'send_seed')
+
+        if not config.has_option('DEVICE', 'recv_addr'):
+            print('The Receiver Address to send the data to not specified, exiting ...')
+            sys.exit(0)
+        else:
+            recv_addr = config.get('DEVICE', 'recv_addr')
+
+    if not config.has_section('BROKER'):
+        print('A MQTT Broker needs to be specified, to listen to message topics. No Broker found. Exiting ...')
+        sys.exit(0)
+    else:
+        if not config.has_option('BROKER', 'node_address'):
+            print("MQTT Broker IP needs to be specified, exiting ...")
+            sys.exit(0)
+        else:
+            broker_address = config.get('BROKER', 'node_address')
+
+        if not config.has_option('BROKER', 'port'):
+            print("MQTT Broker Port not specified, defaulting to 1883")
+        try:
+            broker_port = config.getint('BROKER', 'port', fallback=1883)
+        except ValueError:
+            print("CONFIG PARSING ERROR : BROKER port value is not a number, defaulting to 1883 ... ")
+            broker_port = 1883
+
+        topics = []
+        if config.has_option('BROKER', 'topics'):
+            topics = config.get('BROKER', 'topics')
+            if not topics:
+                topics = []
+        if not topics:
+            print("ATTENTION : No topics have been specified, Broker won't be listening to anything")
+
+    if not config.has_section('VERIFIER_SERVER'):
+        print("ATTENTION : No Verifier servers specified, Nothing would be verified ...")
+    else:
+        if not config.has_option('VERIFIER_SERVER', 'server_address'):
+            print("Verifier Server IP not specified, defaulting to localhost ...")
+        verifier_server = config.get('VERIFIER_SERVER', 'server_address', fallback='localhost')
+
+        if not config.has_option('VERIFIER_SERVER', 'server_port'):
+            print("Verifier server port not specified, defaulting to 9000 ...")
+        try:
+            verifier_server_port = config.getint('VERIFIER_SERVER', 'server_port', fallback=9000)
+        except ValueError:
+            print("CONFIG PARSING ERROR : Verifier Server port value is not a number, defaulting to 9000 ... ")
+            verifier_server_port = 9000
+    
     intrstd_topics = [_t.strip() for _t in topics.split(',')]
     iota_obj = Iota('http://{0}:{1}'.format(iota_node_address, iota_port), dev_seed)
 
