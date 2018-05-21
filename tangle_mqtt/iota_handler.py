@@ -2,6 +2,7 @@ from iota import Iota, Address, ProposedTransaction, Tag, TryteString
 import paho.mqtt.client as mqtt
 
 import configparser
+import json
 import os
 import socket
 import sys
@@ -30,13 +31,15 @@ def on_data_received(client, userdata, message):
     if not message_topic:
         message_topic = full_message_topic
 
-    message_data = str(message.payload.decode())
+    message_data = {'topic' : message_topic,
+                    'data' : str(message.payload.decode()),}
+    message_data_str = json.dumps(message_data)
 
     print('Received Message from MQTT - %s : %s' %(message_topic, message_data,))
 
     recv_addr = userdata.get('address_to_send').encode()
     iota_obj = userdata.get('iota_obj', None)
-    depth_value = userdata.get('depth', 1)
+    depth_value = userdata.get('depth', 3)
     verify_server = userdata.get('verify_server', None)
     id_gen = userdata.get('msg_id_gen')
 
@@ -46,19 +49,18 @@ def on_data_received(client, userdata, message):
         txn_1 = ProposedTransaction(address=Address(recv_addr,),
                                     value=0,
                                     tag=Tag(TryteString.from_unicode(message_id)),
-                                    message=TryteString.from_unicode(message_data))
+                                    message=TryteString.from_unicode(message_data_str))
         _transactions = [txn_1, ]
         iota_obj.send_transfer(depth=depth_value, transfers=_transactions)
-        print ("Sent Message with ID %s succesfully to the Tangle" %(message_id,))
-
-    except:
+        print ("Saved Message with ID %s succesfully to the Tangle" %(message_id,))
+    except Exception:
         print("Could not save to Tangle -- Message ID : {0}, Data : {1}".format(message_id, message_data))
 
     try:
-        msg_to_send = "{id}-{topic}/".format(id=message_id, topic=message_topic)
+        msg_to_send = "{id}/".format(id=message_id)
         print('Sent across to the verifier server : %s' %(msg_to_send,))
         verify_server.sendall(msg_to_send.encode('utf-8'))
-    except:
+    except Exception:
         print("Something went wrong! Couldn't ping our verify server")
 
 
@@ -67,6 +69,17 @@ def startup():
     if not config.read(CONFIG_FILE):
         print("No configuration file found! Exiting startUp!")
         sys.exit(0)
+
+    iota_node_address = None
+    iota_port = None
+    depth_value = None
+    dev_seed = None
+    recv_addr = None
+    broker_address = None
+    broker_port = None
+    intrstd_topics = []
+    verifier_server = None
+    verifier_server_port = None
 
     if not config.has_section('IOTA_NODE'):
         print("No configuration for IOTA Node provided, exiting ...")
@@ -118,6 +131,17 @@ def startup():
         print('A MQTT Broker needs to be specified, to listen to message topics. No Broker found. Exiting ...')
         sys.exit(0)
     else:
+        if config.has_option('BROKER', 'topics'):
+            topics = config.get('BROKER', 'topics')
+            try:
+                intrstd_topics = [_t.strip() for _t in topics.split(',')]
+            except Exception:
+                print("CONFIG PARSING ERROR : Topics specified are unparsable, not listening to anything.. exiting")
+                sys.exit(0)
+        else:
+            print("ATTENTION : No topics have been specified, Broker won't be listening to anything.. exiting")
+            sys.exit(0)
+
         if not config.has_option('BROKER', 'node_address'):
             print("MQTT Broker IP needs to be specified, exiting ...")
             sys.exit(0)
@@ -131,14 +155,6 @@ def startup():
         except ValueError:
             print("CONFIG PARSING ERROR : BROKER port value is not a number, defaulting to 1883 ... ")
             broker_port = 1883
-
-        topics = []
-        if config.has_option('BROKER', 'topics'):
-            topics = config.get('BROKER', 'topics')
-            if not topics:
-                topics = []
-        if not topics:
-            print("ATTENTION : No topics have been specified, Broker won't be listening to anything")
 
     if not config.has_section('VERIFIER_SERVER'):
         print("ATTENTION : No Verifier servers specified, Nothing would be verified ...")
@@ -154,17 +170,17 @@ def startup():
         except ValueError:
             print("CONFIG PARSING ERROR : Verifier Server port value is not a number, defaulting to 9000 ... ")
             verifier_server_port = 9000
-    
-    intrstd_topics = [_t.strip() for _t in topics.split(',')]
+
     iota_obj = Iota('http://{0}:{1}'.format(iota_node_address, iota_port), dev_seed)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        sock.connect((verifier_server, verifier_server_port))
-        print('Successfully connected to the verifier server ...')
-    except:
-        print('Verifier server not running ...')
-        sys.exit(0)
+    sock = None
+    if verifier_server and verifier_server_port:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.connect((verifier_server, verifier_server_port))
+            print('Successfully connected to the verifier server ...')
+        except:
+            print('ATTENTION : Verifier server not up and running, nothing will be verified ...')
 
     msg_id_gen = msg_id_generator().__next__
 
@@ -173,7 +189,6 @@ def startup():
                     'msg_id_gen' : msg_id_gen,
                     'address_to_send' : recv_addr,
                     'depth' : depth_value,
-                    'recv_addr' : recv_addr,
                     'verify_server' : sock, }
 
     client = mqtt.Client(client_id='iota_mqtt', userdata=private_data)
@@ -183,7 +198,8 @@ def startup():
     try:
         client.loop_forever()
     except KeyboardInterrupt:
-        sock.close()
+        if sock:
+            sock.close()
         print('\n\n... No longer connected to Broker')
 
 

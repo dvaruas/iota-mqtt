@@ -1,9 +1,12 @@
 from iota import Iota, Transaction, Tag, TryteString
+import json
 import os
 import sqlite3
 import time
 
-DB_FILE = os.path.relpath(os.path.join(os.pardir, 'resources/values.db'))
+
+DB_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                              os.pardir, 'resources/values.db'))
 TABLE_NAME = 'messages'
 
 
@@ -46,15 +49,22 @@ class Verifier:
         _values = []
         for _t in _trytes:
             _txn = Transaction.from_tryte_string(_t)
-            _value = _txn.signature_message_fragment.decode()
+            _value = json.loads(_txn.signature_message_fragment.decode())
+            _msg_value = _value.get('data', None)
+            _msg_topic = _value.get('topic', None)
             _time = _txn.timestamp
-            print('Message ID : {0}, Value found : {1}'.format(msg_id, _value))
-            # TBD publish it back to the mqtt
-            _tmp = (_value, _time)
+            print('Message ID : %s, Message Topic: %s, Value found : %s' \
+                  %(msg_id, _msg_topic, _msg_value,))
+
+            if self._push_data:
+                # TBD : Push back to MQTT
+                pass
+
+            _tmp = (_msg_topic, _msg_value, _time)
             _values.append(_tmp)
         return _values
 
-    def verification(self, values):
+    def verification(self, topic, value):
         print('Please overload this method in your class ... ')
         return 'False'
 
@@ -79,53 +89,22 @@ class Verifier:
 
         self._conn.commit()
 
-    def run(self, msg_id, item_name):
+    def run(self, msg_id):
         values = self.fetch_data_from_tangle(msg_id)
         # For each msg_id there should be only one value
         if len(values) == 0:
             return
         elif len(values) > 1:
-            raise Exception
+            print("ATTENTION : We may have missed some values in between .. ")
+            self._offset += 1
         value = values[0]
-        verification_ans = self.verification(value)
-        self.save_to_db(msg_id=msg_id, timestamp=value[1], item_name=item_name,
-                        item_value=value, verification_ans=verification_ans)
+        msg_topic = value[0]
+        msg_value = value[1]
+        msg_time = value[2]
+
+        verification_ans = self.verification(msg_topic, msg_value)
+        self.save_to_db(msg_id=msg_id, timestamp=msg_time, item_name=msg_topic,
+                        item_value=msg_value, verification_ans=verification_ans)
 
     def __del__(self):
         self._conn.close()
-
-class Verifier1(Verifier):
-    def __init__(self, id, iota_host, seed, push):
-        super().__init__(id, iota_host, seed, push)
-
-    def verification(self, value):
-        _ans = False
-        try:
-            _ans = (value % 2 == 0)
-        except:
-            pass
-        return str(_ans)
-
-class Verifier2(Verifier):
-    def __init__(self, id, iota_host, seed, push):
-        super().__init__(id, iota_host, seed, push)
-
-    def verification(self, msg_id):
-        _ans = False
-        try:
-            _ans = (value % 3 == 0)
-        except:
-            pass
-        return str(_ans)
-
-def Verifier3(Verifier):
-    def __init__(self, id, iota_host, seed, push):
-        super().__init__(id, iota_host, seed, push)
-
-    def verification(self, msg_id):
-        _ans = False
-        try:
-            _ans = (value % 5 == 0)
-        except:
-            pass
-        return str(_ans)
