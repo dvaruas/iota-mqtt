@@ -5,6 +5,7 @@ import sqlite3
 import sys
 
 from globals import CONFIG_FILE, DB_FILE, TABLE_NAME
+from globals import VISUAL_HOST_DEFAULT, VISUAL_PORT_DEFAULT
 
 
 app = Flask(__name__)
@@ -47,14 +48,21 @@ def show_data():
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     if not config.read(CONFIG_FILE):
-        print("Configuration file non-existant, exiting ... \n")
+        print("CONFIG PARSER ERROR -- Message : No Config File in location " \
+              "\n\n ... Exiting ")
         sys.exit(0)
 
-    try:
-        v_host = config.get('VISUAL', 'host')
-        v_port = config.getint('VISUAL', 'port')
-    except:
-        print("Configuration file is corrupt, exiting ... \n")
-        sys.exit(0)
+    if config.has_section("VISUAL"):
+        print("CONFIG PARSER ERROR -- Message : No Visualization configured. " \
+              "Using %s:%d" %(VISUAL_HOST_DEFAULT, VISUAL_PORT_DEFAULT))
+    else:
+        if not config.has_option('VISUAL', 'host'):
+            print("CONFIG PARSER ERROR -- Message : Visual host not configured," \
+                  " falling to %s" %(VISUAL_HOST_DEFAULT,))
+        v_host = config.get('VISUAL', 'host', fallback=VISUAL_HOST_DEFAULT)
+        if not config.has_option('VISUAL', 'port'):
+            print("CONFIG PARSER ERROR -- Message : Visual port not configured," \
+                  " using port %d" %(VISUAL_PORT_DEFAULT,))
+        v_port = config.getint('VISUAL', 'port', fallback=VISUAL_PORT_DEFAULT)
 
     app.run(host=v_host, port=v_port)
