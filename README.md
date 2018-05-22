@@ -1,6 +1,5 @@
 # Save and Recover data from Tangle - PoC
 
----
 
 This is a simple proof-of-concept work which deals with the following things -
 
@@ -9,11 +8,10 @@ This is a simple proof-of-concept work which deals with the following things -
 - Retrieve these messages later from the Tangle and verify and save them to local DB
 - Contains a basic visualizer (based on Flask), for viewing the data in DB
 
----
 
 # Different parts of the project
 
-### resources
+## resources
 
 The main resources are saved or read from this directory. Usually contains only 2 things.
 
@@ -22,32 +20,31 @@ The main resources are saved or read from this directory. Usually contains only 
   - For the optional fields, their default values are given in the ini file, they can always be changed
 - values.db (The local DB where the data retrieved by verifier server will be saved, used by the visualizer)
 
-### tangle_mqtt
+## tangle_mqtt
 
 The main logic for listening to topic messages, saving to tangle, running verifier server, verifying data all happens in this directory.
 
-###### Running verifiers is completely optional. You can certainly ignore it completely.
+#### Running verifiers is completely optional. You can certainly ignore it completely.
 
 - verifiers.py : All verifier classes need to be specified here. Basic structure of Verifier class is provided as a sample in verifiers_sample.py
   - All verifier classes need to be in this file.
   - Every class name needs to be specified in the config.ini file as class_name (check sample!)
 
-### visualizer
+## visualizer
 
 A simple visualization based on Flask. By default it runs on http://localhost:9797
 
 
----
 
-### Things to be careful about
+# Things to be careful about
 
 - The globals.py in tangle_mqtt and visualizer directories needs to be same for the enclosed section. Otherwise things may break.
 - config.ini needs to be created based on config_sample.ini provided before running the code
 - verifiers.py file needs to be created, if wish to run verifiers.
 
----
 
-### Running the code
+
+# Running the code
 
 - Clone the repo
 - Create the config.ini file inside resources dir and fill it with correct configurations
