@@ -109,6 +109,7 @@ def start_verify_server():
         while True:
             print("Waiting for new connections ..")
             connection, client_address = sock.accept()
+            print("Received New Connection from : %s" str(client_address))
             while True:
                 _b_msg = connection.recv(14)
                 curr_msg = _b_msg.decode('utf-8')

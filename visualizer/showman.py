@@ -5,8 +5,10 @@ import sqlite3
 import sys
 
 
-DB_FILE = os.path.relpath(os.path.join(os.pardir, 'resources/values.db'))
-CONFIG_FILE = os.path.abspath(os.path.join(os.pardir, 'resources/config.ini'))
+DB_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                              os.pardir, 'resources/values.db'))
+CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                              os.pardir, 'resources/config.ini'))
 TABLE_NAME = 'messages'
 
 
@@ -24,7 +26,6 @@ def show_data():
     _c = _conn.cursor()
     _c.execute("SELECT * FROM {t_name}".format(t_name=TABLE_NAME))
     all_data = _c.fetchall()
-    verifier_count = 0
     _c.execute("PRAGMA TABLE_INFO ({t_name})".format(t_name=TABLE_NAME))
 
     _heads = []
@@ -35,16 +36,15 @@ def show_data():
 
     _c.close()
 
-    for i in range(len(_heads)):
-        search_param = 'VERIFIER_{id}'.format(id=(verifier_count + 1))
-        if search_param in _heads:
-            verifier_count += 1
-
-    # We probably don't want the msg_ids, remove them for now
+    # We don't want the msg_ids, remove them for now
     all_data = [_data[1:] for _data in all_data]
 
+    # Get the Verifier names by ID
+    fixed_entries = ['msg_id', 'timestamp', 'item_name', 'item_value']
+    verifier_names = [id for id in _heads if id not in fixed_entries]
+
     if all_data:
-        return render_template('show_data.html', data=all_data, verifier_count=verifier_count)
+        return render_template('show_data.html', data=all_data, verifier_names=verifier_names)
     else:
         return no_data_banner
 

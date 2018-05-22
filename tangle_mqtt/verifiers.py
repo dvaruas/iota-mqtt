@@ -8,7 +8,7 @@ class Verifier1(Verifier):
     def verification(self, topic, value):
         _ans = False
         try:
-            _ans = (value % 2 == 0)
+            _ans = (int(value) % 2 == 0)
         except:
             pass
         return str(_ans)
@@ -20,7 +20,7 @@ class Verifier2(Verifier):
     def verification(self, topic, value):
         _ans = False
         try:
-            _ans = (value % 3 == 0)
+            _ans = (int(value) % 3 == 0)
         except:
             pass
         return str(_ans)
@@ -32,7 +32,7 @@ def Verifier3(Verifier):
     def verification(self, topic, value):
         _ans = False
         try:
-            _ans = (value % 5 == 0)
+            _ans = (int(value) % 5 == 0)
         except:
             pass
         return str(_ans)
