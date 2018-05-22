@@ -12,9 +12,9 @@ class Verifier:
         self._id = id
         self._iota_obj = Iota(iota_host, seed)
         self._conn = None
-        self._offset = 0
         self._push_data = push
         self._initial_setup()
+
 
     def _initial_setup(self):
         _create_table_reqd = not os.path.exists(DB_FILE)
@@ -25,13 +25,6 @@ class Verifier:
             cmd_ = "CREATE TABLE {t_name} (msg_id INTEGER PRIMARY KEY, timestamp TEXT, " \
                    "item_name TEXT, item_value TEXT)".format(t_name=TABLE_NAME)
             c.execute(cmd_)
-        else:
-            # Check if data is present and correct msg_id offset
-            c.execute("SELECT MAX(msg_id) FROM {t_name}".format(t_name=TABLE_NAME))
-            _offset = c.fetchone()[0]
-            if _offset:
-                self._offset = _offset
-            print("Have set offset to : " + str(self._offset))
 
         c.execute("PRAGMA TABLE_INFO ({t_name})".format(t_name=TABLE_NAME))
         column_names = [t[1] for t in c.fetchall()]
@@ -39,6 +32,7 @@ class Verifier:
             c.execute("ALTER TABLE {t_name} ADD COLUMN '{c_name}' TEXT DEFAULT 'False'"\
                       .format(t_name=TABLE_NAME, c_name=self._id))
         self._conn.commit()
+
 
     def fetch_data_from_tangle(self, msg_id):
         txns = self._iota_obj.find_transactions(tags=[Tag(TryteString.from_unicode(msg_id))])
@@ -61,13 +55,15 @@ class Verifier:
             _values.append(_tmp)
         return _values
 
+
     def verification(self, topic, value):
         print('Please overload this method in your class ... ')
         return 'False'
 
+
     def save_to_db(self, msg_id, timestamp, item_name, item_value, verification_ans):
         c = self._conn.cursor()
-        _msg_id = int(msg_id) + self._offset
+        _msg_id = int(msg_id)
         _time_val = str(timestamp)
         try:
             _time_val = time.strftime("%a, %d %b %Y %H:%M:%S", time.gmtime(timestamp))
@@ -86,14 +82,15 @@ class Verifier:
 
         self._conn.commit()
 
+
     def run(self, msg_id):
         values = self.fetch_data_from_tangle(msg_id)
         # For each msg_id there should be only one value
         if len(values) == 0:
             return
         elif len(values) > 1:
-            print("ATTENTION : We may have missed some values in between .. ")
-            self._offset += 1
+            raise Exception
+
         value = values[0]
         msg_topic = value[0]
         msg_value = value[1]
@@ -102,6 +99,7 @@ class Verifier:
         verification_ans = self.verification(msg_topic, msg_value)
         self.save_to_db(msg_id=msg_id, timestamp=msg_time, item_name=msg_topic,
                         item_value=msg_value, verification_ans=verification_ans)
+
 
     def __del__(self):
         self._conn.close()

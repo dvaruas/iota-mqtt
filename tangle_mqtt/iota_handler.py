@@ -1,5 +1,7 @@
 import json
+import os
 import socket
+import sqlite3
 import sys
 import threading
 
@@ -7,10 +9,11 @@ from iota import Iota, Address, ProposedTransaction, Tag, TryteString
 import paho.mqtt.client as mqtt
 
 from config_reader import ConfigReader, ConfigurationMissing
+from globals import DB_FILE, TABLE_NAME
 
 
-def msg_id_generator():
-    msg_id = 0
+def msg_id_generator(offset):
+    msg_id = offset
     while True:
         msg_id += 1
         yield msg_id
@@ -38,17 +41,18 @@ def tangle_and_verify(message_id, userdata, message_data):
                                     message=TryteString.from_unicode(message_data))
         _transactions = [txn_1, ]
         iota_obj.send_transfer(depth=depth_value, transfers=_transactions)
-        print("Saved Message with ID %s succesfully to the Tangle" %(message_id,))
+        print("\n .. Saved Message with ID %s succesfully to the Tangle \n" %(message_id,))
     except Exception:
-        print("Could not save to Tangle -- Message ID : {0}, Data : {1}".format(message_id, message_data))
+        print("\n .. Could not save to Tangle -- Message ID : {0}, " \
+              "Data : {1} \n".format(message_id, message_data))
         return
 
     try:
         msg_to_send = "{id}/".format(id=message_id)
-        print('Sent across to the verifier server : %s' %(msg_to_send,))
         verify_server.sendall(msg_to_send.encode('utf-8'))
     except Exception:
-        print("Something went wrong! Couldn't send data for Msg ID = %s to our verify server" %(message_id,))
+        print("Something went wrong! Couldn't send data for Msg ID = %s to our " \
+              "verify server" %(message_id,))
 
 
 def on_data_received(client, userdata, message):
@@ -62,7 +66,7 @@ def on_data_received(client, userdata, message):
                     'data' : str(message.payload.decode()),}
     message_data_str = json.dumps(message_data)
 
-    print('Received Message from MQTT - %s : %s' %(message_topic, message_data_str,))
+    print('New Message from MQTT - %s' %(message_data_str,))
 
     id_gen = userdata.get('msg_id_gen')
     message_id = str(id_gen())
@@ -107,7 +111,20 @@ def startup():
         except:
             print('ATTENTION : Verifier server not up and running, nothing will be verified ...')
 
-    msg_id_gen = msg_id_generator().__next__
+    # Check DB if existing, and set ID generation offset
+    offset = 0
+    if os.path.exists(DB_FILE):
+        _conn = sqlite3.connect(DB_FILE)
+        _c = _conn.cursor()
+        try:
+            _c.execute("SELECT MAX(msg_id) FROM {t_name}".format(t_name=TABLE_NAME))
+            offset = _c.fetchone()[0]
+        except Exception:
+            pass
+        finally:
+            _conn.close()
+
+    msg_id_gen = msg_id_generator(offset).__next__
 
     private_data = {'topics' : intrstd_topics,
                     'iota_obj' : iota_obj,

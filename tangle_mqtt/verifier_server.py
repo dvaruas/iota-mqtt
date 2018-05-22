@@ -66,22 +66,20 @@ def start_verify_server():
         while True:
             print("Waiting for new connections ..")
             connection, client_address = sock.accept()
-            print("Received New Connection from : %s" %(str(client_address),))
+            print("\n .. Received New Connection from : %s" %(str(client_address),))
             while True:
                 _b_msg = connection.recv(14)
                 curr_msg = _b_msg.decode('utf-8')
-                print("Received from the IOTA subscriber : %s" %(curr_msg,))
+                print("\n .. Received from the IOTA subscriber : %s \n" %(curr_msg,))
                 if curr_msg:
                     all_msgs = curr_msg.split('/')
-                    print("All msgs : " + str(all_msgs))
                     for one_msg in all_msgs:
                         if not one_msg:
                             continue
                         message_id = one_msg
                         for (i,o) in verifier_iota.items():
-                            print("Called verifier %s Run" %(i,))
+                            print(".. Called verifier %s on the data .." %(i,))
                             o.run(msg_id=message_id)
-                    print("Done with one sequence")
                 else:
                     break
 

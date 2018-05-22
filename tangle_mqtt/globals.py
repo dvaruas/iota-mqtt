@@ -15,6 +15,8 @@ VISUAL_PORT_DEFAULT = 9797
 
 #------------------------------------------------------------------------------
 
+IOTA_DEPTH_VALUE = 3
+
 BROKER_PORT_DEFAULT = 1883
 
 VERIFIER_SERVER_HOST_DEFAULT = 'localhost'

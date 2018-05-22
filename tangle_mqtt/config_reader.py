@@ -2,7 +2,7 @@ from collections import namedtuple
 import configparser
 
 from globals import CONFIG_FILE
-from globals import BROKER_PORT_DEFAULT
+from globals import IOTA_DEPTH_VALUE, BROKER_PORT_DEFAULT
 from globals import VERIFIER_SERVER_HOST_DEFAULT, VERIFIER_SERVER_PORT_DEFAULT
 from globals import VISUAL_HOST_DEFAULT, VISUAL_PORT_DEFAULT
 
@@ -46,12 +46,14 @@ class ConfigReader:
 
             if not self.config.has_option('IOTA_NODE', 'depth_value'):
                 print("How much deep in Tangle to go to, to start random walk " \
-                      "not specified.. Taking default value of 3")
+                      "not specified.. Taking default value of %d" %(IOTA_DEPTH_VALUE,))
             try:
-                depth_value = self.config.getint('IOTA_NODE', 'depth_value', fallback=3)
+                depth_value = self.config.getint('IOTA_NODE', 'depth_value',
+                                                 fallback=IOTA_DEPTH_VALUE)
             except ValueError:
-                print("IOTA NODE depth value is not a number, defaulting to 3 ... ")
-                depth_value = 3
+                print("IOTA NODE depth value is not a number, defaulting to %d ... " \
+                      %(IOTA_DEPTH_VALUE,))
+                depth_value = IOTA_DEPTH_VALUE
 
         iota_node = namedtuple("iNode", ["addr", "port", "depth"])
         return iota_node(addr=iota_node_address, port=iota_port, depth=depth_value)
