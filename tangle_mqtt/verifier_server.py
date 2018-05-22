@@ -1,14 +1,9 @@
 import configparser
-import os
-import random
 import socket
-import string
 import sys
 
 import verifiers
-
-CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              os.pardir, 'resources/config.ini'))
+from globals import CONFIG_FILE
 
 
 def start_verify_server():
@@ -87,8 +82,7 @@ def start_verify_server():
     verifier_iota = {}
     for i in range(count):
         _ver = verifier_names[i]
-        verifier_id = config.get(_ver, 'ID',
-            fallback=''.join(random.sample(string.ascii_lowercase, 4)))
+        verifier_id = config.get(_ver, 'ID', fallback='Verifier{id}'.format(id=i))
 
         if not config.has_option(_ver, 'class_name'):
             print("Define class_name in config file for your Verifier %s. Skipping this verifier ..." %(_ver,))
@@ -109,7 +103,7 @@ def start_verify_server():
         while True:
             print("Waiting for new connections ..")
             connection, client_address = sock.accept()
-            print("Received New Connection from : %s" str(client_address))
+            print("Received New Connection from : %s" %(str(client_address),))
             while True:
                 _b_msg = connection.recv(14)
                 curr_msg = _b_msg.decode('utf-8')

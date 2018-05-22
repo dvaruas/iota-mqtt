@@ -4,12 +4,7 @@ import os
 import sqlite3
 import sys
 
-
-DB_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              os.pardir, 'resources/values.db'))
-CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              os.pardir, 'resources/config.ini'))
-TABLE_NAME = 'messages'
+from globals import CONFIG_FILE, DB_FILE, TABLE_NAME
 
 
 app = Flask(__name__)

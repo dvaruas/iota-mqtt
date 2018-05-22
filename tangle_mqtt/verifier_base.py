@@ -4,10 +4,7 @@ import os
 import sqlite3
 import time
 
-
-DB_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              os.pardir, 'resources/values.db'))
-TABLE_NAME = 'messages'
+from globals import DB_FILE, TABLE_NAME
 
 
 class Verifier:

@@ -1,15 +1,14 @@
+import configparser
+import json
+import socket
+import sys
+import threading
+
 from iota import Iota, Address, ProposedTransaction, Tag, TryteString
 import paho.mqtt.client as mqtt
 
-import configparser
-import json
-import os
-import socket
-import sys
+from globals import CONFIG_FILE
 
-
-CONFIG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                              os.pardir, 'resources/config.ini'))
 
 def msg_id_generator():
     msg_id = 0
@@ -24,6 +23,35 @@ def on_connect(client, userdata, flags, rc):
         client.subscribe(_t)
 
 
+def tangle_and_verify(message_id, userdata, message_data):
+    if not userdata or not message_id:
+        return
+
+    recv_addr = userdata.get('address_to_send', '').encode()
+    iota_obj = userdata.get('iota_obj', None)
+    depth_value = userdata.get('depth', 3)
+    verify_server = userdata.get('verify_server', None)
+
+    try:
+        txn_1 = ProposedTransaction(address=Address(recv_addr,),
+                                    value=0,
+                                    tag=Tag(TryteString.from_unicode(message_id)),
+                                    message=TryteString.from_unicode(message_data))
+        _transactions = [txn_1, ]
+        iota_obj.send_transfer(depth=depth_value, transfers=_transactions)
+        print ("Saved Message with ID %s succesfully to the Tangle" %(message_id,))
+    except Exception:
+        print("Could not save to Tangle -- Message ID : {0}, Data : {1}".format(message_id, message_data))
+        return
+
+    try:
+        msg_to_send = "{id}/".format(id=message_id)
+        print('Sent across to the verifier server : %s' %(msg_to_send,))
+        verify_server.sendall(msg_to_send.encode('utf-8'))
+    except Exception:
+        print("Something went wrong! Couldn't send data for Msg ID = %s to our verify server" %(message_id,))
+
+
 def on_data_received(client, userdata, message):
     full_message_topic = str(message.topic).rstrip('/')
     find_last_dir = full_message_topic.rfind('/') + 1
@@ -35,33 +63,15 @@ def on_data_received(client, userdata, message):
                     'data' : str(message.payload.decode()),}
     message_data_str = json.dumps(message_data)
 
-    print('Received Message from MQTT - %s : %s' %(message_topic, message_data,))
+    print('Received Message from MQTT - %s : %s' %(message_topic, message_data_str,))
 
-    recv_addr = userdata.get('address_to_send').encode()
-    iota_obj = userdata.get('iota_obj', None)
-    depth_value = userdata.get('depth', 3)
-    verify_server = userdata.get('verify_server', None)
     id_gen = userdata.get('msg_id_gen')
-
     message_id = str(id_gen())
 
-    try:
-        txn_1 = ProposedTransaction(address=Address(recv_addr,),
-                                    value=0,
-                                    tag=Tag(TryteString.from_unicode(message_id)),
-                                    message=TryteString.from_unicode(message_data_str))
-        _transactions = [txn_1, ]
-        iota_obj.send_transfer(depth=depth_value, transfers=_transactions)
-        print ("Saved Message with ID %s succesfully to the Tangle" %(message_id,))
-    except Exception:
-        print("Could not save to Tangle -- Message ID : {0}, Data : {1}".format(message_id, message_data))
-
-    try:
-        msg_to_send = "{id}/".format(id=message_id)
-        print('Sent across to the verifier server : %s' %(msg_to_send,))
-        verify_server.sendall(msg_to_send.encode('utf-8'))
-    except Exception:
-        print("Something went wrong! Couldn't ping our verify server")
+    new_thread = threading.Thread(target=tangle_and_verify, kwargs=dict(message_id=message_id,
+                                                                        message_data=message_data_str,
+                                                                        userdata=userdata))
+    new_thread.start()
 
 
 def startup():
