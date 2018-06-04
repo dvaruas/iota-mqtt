@@ -38,6 +38,7 @@ A simple visualization based on Flask. By default it runs on http://localhost:97
 
 # Things to be careful about
 
+- Requires python3 and some other packages as given in requirements.txt
 - The globals.py in tangle_mqtt and visualizer directories needs to be same for the enclosed section. Otherwise things may break.
 - config.ini needs to be created based on config_sample.ini provided before running the code
 - verifiers.py file needs to be created, if wish to run verifiers.
@@ -47,6 +48,7 @@ A simple visualization based on Flask. By default it runs on http://localhost:97
 # Running the code
 
 - Clone the repo
+- ``pip3 install -r requirements.txt``
 - Create the config.ini file inside resources dir and fill it with correct configurations
 - Write your verifier classes in verifiers.py (if you want verification and local saving in DB) following the sample code given
 - Start verifier_server.py
