@@ -78,7 +78,6 @@ def on_data_received(client, userdata, message):
 
 
 def startup():
-
     try:
         conf_reader = ConfigReader()
         iNode = conf_reader.get_iota_node_config()

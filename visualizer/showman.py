@@ -52,9 +52,11 @@ if __name__ == '__main__':
               "\n\n ... Exiting ")
         sys.exit(0)
 
-    if config.has_section("VISUAL"):
+    if not config.has_section("VISUAL"):
         print("CONFIG PARSER ERROR -- Message : No Visualization configured. " \
               "Using %s:%d" %(VISUAL_HOST_DEFAULT, VISUAL_PORT_DEFAULT))
+        v_host = VISUAL_HOST_DEFAULT
+        v_port = VISUAL_PORT_DEFAULT
     else:
         if not config.has_option('VISUAL', 'host'):
             print("CONFIG PARSER ERROR -- Message : Visual host not configured," \

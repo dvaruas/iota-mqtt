@@ -1,8 +1,9 @@
-from iota import Iota, Transaction, Tag, TryteString
 import json
 import os
 import sqlite3
 import time
+
+from iota import Iota, Transaction, Tag, TryteString
 
 from globals import DB_FILE, TABLE_NAME
 
