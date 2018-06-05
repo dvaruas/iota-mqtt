@@ -4,7 +4,6 @@ import configparser
 from globals import CONFIG_FILE
 from globals import IOTA_DEPTH_VALUE, BROKER_PORT_DEFAULT
 from globals import VERIFIER_SERVER_HOST_DEFAULT, VERIFIER_SERVER_PORT_DEFAULT
-from globals import VISUAL_HOST_DEFAULT, VISUAL_PORT_DEFAULT
 
 
 class ConfigurationMissing(Exception):
